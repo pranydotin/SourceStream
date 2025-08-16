@@ -4,8 +4,12 @@ from datetime import datetime, timezone
 import email.utils as eut
 
 
+TRUSTED_SOURCE = ['Deccan Herald', 'Times of India', 'The Hindu',
+                  'Tribune India', 'Hindustan Times', 'Mint', 'Press Trust of India', 'Telegraph India', 'ThePrint', 'Moneycontrol', 'Newslaundry']
+
+
 def scrape_google_news():
-    url = "https://news.google.com/rss/search?q=uttarakhand+environment"
+    url = "https://news.google.com/rss/search?q=uttarakhand"
     resp = requests.get(url)
     soup = BeautifulSoup(resp.content, "xml")
 
@@ -20,24 +24,27 @@ def scrape_google_news():
     return articles
 
 
-# scrape_google_news()
-
-
 if __name__ == "__main__":
     print(datetime.now())
     title = []
+    currentTime = datetime.now(timezone.utc)
     for art in scrape_google_news():
-        # print(art['pub_date'])
-        diff = datetime.now(
-            timezone.utc)-datetime.fromtimestamp(eut.mktime_tz(eut.parsedate_tz(art['pub_date'])), tz=timezone.utc)
+        article_time = datetime.fromtimestamp(eut.mktime_tz(
+            eut.parsedate_tz(art['pub_date'])), tz=timezone.utc)
+        diff = currentTime-article_time
         # print(diff)
         hrs = diff.total_seconds()/3600
         # print(diff.total_seconds()/3600)
-        if (hrs <= 48):
+        if (hrs <= 48) and (art['source'] in TRUSTED_SOURCE):
             print(art)
             print(art['title'])
+            print(art['pub_date'])
+            print(art['source'])
+            print()
 
         # print(art)
+        # print(art['title'])
+        # print()
         # title.append(art['title'])
 
 # print(title)
