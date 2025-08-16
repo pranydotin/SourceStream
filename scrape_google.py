@@ -1,7 +1,10 @@
+import asyncio
 import requests
 from bs4 import BeautifulSoup
 from datetime import datetime, timezone
 import email.utils as eut
+from utils.getArticle import getArticle
+from utils.getArticle import get_original_link
 
 
 TRUSTED_SOURCE = ['Deccan Herald', 'Times of India', 'The Hindu',
@@ -15,6 +18,7 @@ def scrape_google_news():
 
     articles = []
     for item in soup.find_all("item"):
+        # print(item)
         title = item.title.text
         link = item.link.text
         pub_date = item.pubDate.text
@@ -24,27 +28,23 @@ def scrape_google_news():
     return articles
 
 
-if __name__ == "__main__":
-    print(datetime.now())
-    title = []
-    currentTime = datetime.now(timezone.utc)
-    for art in scrape_google_news():
-        article_time = datetime.fromtimestamp(eut.mktime_tz(
-            eut.parsedate_tz(art['pub_date'])), tz=timezone.utc)
-        diff = currentTime-article_time
-        # print(diff)
-        hrs = diff.total_seconds()/3600
-        # print(diff.total_seconds()/3600)
-        if (hrs <= 48) and (art['source'] in TRUSTED_SOURCE):
-            print(art)
-            print(art['title'])
-            print(art['pub_date'])
-            print(art['source'])
-            print()
+async def main():
+    if __name__ == "__main__":
+        articles = []
+        currentTime = datetime.now(timezone.utc)
 
-        # print(art)
-        # print(art['title'])
-        # print()
-        # title.append(art['title'])
+        for art in scrape_google_news():
+            article_time = datetime.fromtimestamp(eut.mktime_tz(
+                eut.parsedate_tz(art['pub_date'])), tz=timezone.utc)
 
-# print(title)
+            diff = currentTime-article_time
+            # print(diff)
+            hrs = diff.total_seconds()/3600
+            # print(diff.total_seconds()/3600)
+            if (hrs <= 48) and (art['source'] in TRUSTED_SOURCE):
+                art['original_link'] = await get_original_link(art['link'])
+                articles.append(art)
+
+    print(articles)
+
+asyncio.run(main())
