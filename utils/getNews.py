@@ -1,11 +1,27 @@
-
+import requests
+from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from playwright.async_api import async_playwright
-import requests
+
+
+def scrape_google_news(cat):
+    url = f'https://news.google.com/rss/search?q=uttarakhand+({cat['query']})&hl=en-IN&gl=IN&ceid=IN:en'
+    resp = requests.get(url)
+    soup = BeautifulSoup(resp.content, "xml")
+
+    articles = []
+    for item in soup.find_all("item"):
+        # print(item)
+        title = item.title.text
+        link = item.link.text
+        pub_date = item.pubDate.text
+        source = item.source.text
+        articles.append({"title": title, "link": link,
+                        "pub_date": pub_date, "source": source})
+    return articles
 
 
 def getArticle(article):
-    # print(article)
     url = article['link']
     print(url)
 
@@ -19,14 +35,14 @@ def getArticle(article):
 
 
 async def get_original_link(url):
-
     async with async_playwright() as p:
         browser = await p.firefox.launch(headless=False)
         page = await browser.new_page()
 
         article_url = None
+        page_title = None
 
-        def handle_request(request):
+        async def handle_request(request):
             nonlocal article_url
             req_url = request.url
             if request.resource_type == "document":
@@ -37,9 +53,13 @@ async def get_original_link(url):
 
         page.on("request", handle_request)
 
-        await page.goto(url, wait_until="domcontentloaded")
+        await page.goto(url, wait_until="load")
         await page.wait_for_timeout(5000)
+        h1 = page.locator('h1').first
+        page_title = (await h1.text_content()).strip()
 
         await browser.close()
-        # print(article_url)
-        return article_url
+        print(article_url)
+        print(page_title)
+        return {"article_url": article_url,
+                "page_title": page_title}
