@@ -3,10 +3,13 @@ from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 from playwright.async_api import async_playwright
 
+import asyncio
 
-def scrape_google_news(cat):
-    url = f'https://news.google.com/rss/search?q=uttarakhand%20{cat['query']}&hl=en-IN&gl=IN&ceid=IN:en'
-    print(url)
+
+def scrape_google_news():
+    # url = f'https://news.google.com/rss/search?q=uttarakhand%20{cat['query']}&hl=en-IN&gl=IN&ceid=IN:en'
+    url = f'https://news.google.com/rss/search?q=uttarakhand'
+    # print(url)
     resp = requests.get(url)
     soup = BeautifulSoup(resp.content, "xml")
 
@@ -60,3 +63,6 @@ async def get_original_link(url):
 
         return {"article_url": article_url,
                 "page_title": page_title}
+
+
+asyncio.run(get_original_link('https://news.google.com/rss/articles/CBMi_AFBVV95cUxOVTFHUE1Sdk9aS1VZbVVrMURKVjd0cnF4Z2ZOTjd5N1M3MUNBNi1TalF0ODRJZHFBNnN0U2VmYW9NanJRT0Y4NnJWY0ZtenBwR2JCNTQxNnFsRHV6Z2NLbFpfYzlYY2hGTm5STzVGVXNaWm1Ca3FuV25MYUFNX2x1MEMtQlpQcTJZQURJMUlBRGNxbXY3MEtiY3hSdEhVQlp2ZlRqeXNmN0NKMlgwQk1ybElNMDJaZHMxSTU5SE8xaXFJOXZVUzBHRnNCeFc0TW1qQmkxTzZLTFI2dllQcHFMVUhnQ0R4Y1E0WTE3VWd3Z0tjU3NrSldqeUhGdTjSAYMCQVVfeXFMUGpEWXgzcmloUWJSNXpLNnFpb3kwcW9vZWxDaWNrekVaa3NCNlgwWm9CcjgzcFJIYS1UMFhyZ1E0SXgzdUNEV2gxYjlpYUNwdE9iOGNKcGxCOEhjdWZZS3VUTjZkeTk1UEtFdW5CZ3dRMDdLTjhJQVNsZ216RHVNUXVmMnpFREt0dFpIczQ1b0x3eGJhblJBTTl6U0tfLXc4WnZ2SERuVkVZUTh2XzRnUmhVV0c1Mm1QYWl0a0NnRkJLcXByNXpWTUxYSDNzb2E0cnU1RTlJN0NaTFBvdHBTX3FKOEFMa2ZfbzNLSFZJckJxVDZNN1pueldxTkR1ZDlKb2ZXNA?oc=5'))
