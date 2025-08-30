@@ -2,7 +2,7 @@ import asyncio
 from datetime import datetime, timezone
 import email.utils as eut
 from utils.getNews import scrape_google_news, get_original_link
-from utils.getArticle import getArticle
+from utils.selectNews import process_article_clusters
 import json
 
 from utils.db.db_utils import fetch_trusted_sources, fetch_categories
@@ -11,39 +11,34 @@ from utils.db.db_utils import fetch_trusted_sources, fetch_categories
 async def main():
     if __name__ == "__main__":
 
-        TRUSTED_SOURCE = fetch_trusted_sources()
+        trusted_sources = fetch_trusted_sources()
+        categories = fetch_categories()
+        current_time = datetime.now(timezone.utc)
 
         articles = {}
-        currentTime = datetime.now(timezone.utc)
-
-        categories = fetch_categories()
-        # print(categories)
         for cat in categories:
-            # print(cat)
-            # nonlocal articles
-            link = []
+            raw_articles = scrape_google_news(cat)
+            filtered = []
 
-            for art in scrape_google_news(cat):
+            for art in raw_articles:
                 article_time = datetime.fromtimestamp(eut.mktime_tz(
                     eut.parsedate_tz(art['pub_date'])), tz=timezone.utc)
 
-                diff = currentTime-article_time
-                # print(diff)
-                hrs = diff.total_seconds()/3600
-                # print(diff.total_seconds()/3600)
-                if (hrs <= 48) and (art['source'] in TRUSTED_SOURCE):
+                article_time_spend = (
+                    current_time-article_time).total_seconds()/3600
+
+                if (article_time_spend <= 24) and (art['source'] in trusted_sources):
                     try:
                         response = await get_original_link(art['link'])
-                        art['original_link'] = response['article_url']
-                        art['page_title'] = response['page_title']
-                        link.append(art)
+                        art.pop('link', None)
+                        art['link'] = response['article_url']
+                        art['news_title'] = response['page_title']
+                        filtered.append(art)
                     except Exception as e:
                         print(e)
 
-            # print(link)
-            # print(cat['category_name'])
-            if link:
-                articles[cat['category_name']] = link
+            if filtered:
+                articles[cat['category_name']] = filtered
 
             print(articles)
             print()
@@ -51,6 +46,8 @@ async def main():
     print()
     with open("./utils/articles.json", "w", encoding="utf-8") as f:
         json.dump(articles, f, indent=4, ensure_ascii=False)
+    filtered = process_article_clusters(articles)
+    print(filtered)
 
     titles = []
     # for article in articles:

@@ -5,13 +5,13 @@ from playwright.async_api import async_playwright
 
 
 def scrape_google_news(cat):
-    url = f'https://news.google.com/rss/search?q=uttarakhand+({cat['query']})&hl=en-IN&gl=IN&ceid=IN:en'
+    url = f'https://news.google.com/rss/search?q=uttarakhand%20{cat['query']}&hl=en-IN&gl=IN&ceid=IN:en'
+    print(url)
     resp = requests.get(url)
     soup = BeautifulSoup(resp.content, "xml")
 
     articles = []
     for item in soup.find_all("item"):
-        # print(item)
         title = item.title.text
         link = item.link.text
         pub_date = item.pubDate.text
@@ -23,14 +23,12 @@ def scrape_google_news(cat):
 
 def getArticle(article):
     url = article['link']
-    print(url)
 
     with sync_playwright() as p:
         browser = p.firefox.launch(headless=False)
         page = browser.new_page()
         page.goto(url)
         page.wait_for_timeout(3000)
-        print(page.title())
         browser.close()
 
 
@@ -59,7 +57,6 @@ async def get_original_link(url):
         page_title = (await h1.text_content()).strip()
 
         await browser.close()
-        print(article_url)
-        print(page_title)
+
         return {"article_url": article_url,
                 "page_title": page_title}
