@@ -34,7 +34,7 @@ def fetch_trusted_sources():
 
 def fetch_categories():
     db_conn = None
-    query = "select * from categories order by id;"
+    query = "select category_name from categories order by id;"
     try:
         db_conn = get_db_connection(None)
 
@@ -43,8 +43,7 @@ def fetch_categories():
             cur.execute(query)
 
             results = cur.fetchall()
-            category = [{'category_name': row['category_name'], 'query': row['query']}
-                        for row in results]
+            category = [row['category_name']for row in results]
 
             # trusted_sources_list = [item[0] for item in results]
 
@@ -101,5 +100,3 @@ def getPreference(category, sources):
         if db_conn:
             db_conn.close()
         return result
-
-# fetch_categories()
