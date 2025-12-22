@@ -59,7 +59,7 @@ def select_news_source(articles):
 
         for articles in articles_group:
             if len(articles) == 1:
-                final_articles.append(articles)
+                final_articles.append(articles[0])
                 continue
 
             sources = [article['source'] for article in articles]
