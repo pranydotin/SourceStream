@@ -100,3 +100,29 @@ def getPreference(category, sources):
         if db_conn:
             db_conn.close()
         return result
+
+
+def fetchSelectors(source):
+
+    print(source)
+    db_conn = None
+
+    query = """
+    select content_selector from news_source ns where ns.source=%s ;
+    """
+    try:
+        db_conn = get_db_connection(None)
+        if db_conn:
+            cur = db_conn.cursor(cursor_factory=DictCursor)
+
+            cur.execute(query, (source,))
+            result = cur.fetchone()['content_selector']
+            cur.close()
+
+    except (Exception, psycopg2.Error) as error:
+        print(f"Error fetching trusted sources: {error}")
+
+    finally:
+        if db_conn:
+            db_conn.close()
+        return result
