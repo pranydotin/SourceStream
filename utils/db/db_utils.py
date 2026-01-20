@@ -104,7 +104,6 @@ def getPreference(category, sources):
 
 def fetchSelectors(source):
 
-    print(source)
     db_conn = None
 
     query = """
