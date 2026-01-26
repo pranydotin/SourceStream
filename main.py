@@ -1,51 +1,88 @@
 import asyncio
 from datetime import datetime, timezone
 import email.utils as eut
-from utils.getNews import scrape_google_news, get_original_link
+from utils.getNews import scrape_google_news, get_original_link, getArticle
 from utils.selectNews import select_news_source
 # import json
+from utils.logger import setup_logger
 
-from utils.db.db_utils import fetch_trusted_sources, fetch_categories
+from utils.db.db_utils import fetch_trusted_sources, fetch_categories, fetchSelectors
+
+logger = setup_logger(__name__)
 
 
 async def main():
-    if __name__ == "__main__":
+    # if __name__ == "__main__":
 
-        trusted_sources = fetch_trusted_sources()
+    logger.info("Fetching trusted sources")
+    trusted_sources = fetch_trusted_sources()
+    logger.info("Fetched trusted sources")
 
-        # raw_articles = scrape_google_news(cat)
-        raw_articles = scrape_google_news()
-        articles_recent = []
+    # # raw_articles = scrape_google_news(cat)
 
-        current_time = datetime.now(timezone.utc)
-        for art in raw_articles:
-            article_time = datetime.fromtimestamp(eut.mktime_tz(
-                eut.parsedate_tz(art['pub_date'])), tz=timezone.utc)
+    logger.info("Fetching news sources")
+    raw_articles = scrape_google_news()
+    logger.info("News sources collected (%d articles)", len(raw_articles))
 
-            article_time_spend = (
-                current_time-article_time).total_seconds()/3600
+    articles_recent = []
 
-            if article_time_spend <= 24 and art['source'] in trusted_sources:
-                articles_recent.append(art)
+    current_time = datetime.now(timezone.utc)
+    logger.info("Fetching recent news source from trusted source")
 
-        articles = select_news_source(articles_recent)
+    for art in raw_articles:
+        article_time = datetime.fromtimestamp(eut.mktime_tz(
+            eut.parsedate_tz(art['pub_date'])), tz=timezone.utc)
 
-        # print(articles)
+        article_time_spend = (
+            current_time-article_time).total_seconds()/3600
 
-        for art in articles:
-            print(art)
-            print()
+        if article_time_spend <= 24 and art['source'] in trusted_sources:
+            articles_recent.append(art)
 
-        # get articles from news
+    logger.info(
+        f"[Filter] {len(articles_recent)} articles retained after filtering ")
 
-        # try:
-        #     response = await get_original_link(art['link'])
-        #     art.pop('link', None)
-        #     art['link'] = response['article_url']
-        #     art['news_title'] = response['page_title']
-        #     filtered.append(art)
-        # except Exception as e:
-        #     print(e)
+    # for idx, art in enumerate(articles_recent):
+    #     print(f"{idx+1} {art['title']}")
+
+    # print()
+
+    logger.info(
+        "[Process] Selecting News")
+    articles = select_news_source(articles_recent)
+    print(len(articles))
+
+    # print(articles)
+
+    # for idx, art in enumerate(articles):
+    #     print(f"{idx+1} {art['title']}")
+
+    # print()
+
+    # for art in articles:
+    #     print(art)
+    #     print()
+
+    # print(final_articles)
+    # print("final")
+    logger.info("[Fetch] Retrieving content selectors for all sources")
+    for i in articles:
+        # print(f"{i['title']}: {i['source']} from {i['category']}")
+        i['sel'] = fetchSelectors(i['source'])
+
+        await getArticle(i)
+    # print(i)
+
+    # get articles from news
+
+    # try:
+    #     response = await get_original_link(art['link'])
+    #     art.pop('link', None)
+    #     art['link'] = response['article_url']
+    #     art['news_title'] = response['page_title']
+    #     filtered.append(art)
+    # except Exception as e:
+    #     print(e)
 
     #     # if filtered:
     #     #     for f in filtered:
