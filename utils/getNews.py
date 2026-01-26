@@ -1,11 +1,14 @@
 import requests
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, TimeoutError, Error
 
 from readability import Document
 
 import asyncio
+from utils.logger import setup_logger
+
+logger = setup_logger(__name__)
 
 
 def scrape_google_news():
@@ -33,15 +36,52 @@ def scrape_google_news():
     return articles
 
 
-def getArticle(article):
-    url = article['link']
+async def getArticle(article):
 
-    with sync_playwright() as p:
-        browser = p.firefox.launch(headless=False)
-        page = browser.new_page()
-        page.goto(url)
-        page.wait_for_timeout(3000)
-        browser.close()
+    print(article)
+    url = article['link']
+    sel = article['sel']
+
+    logger.info(f"[SCRAPE] Fetching article content: {article['source']}")
+
+    async with async_playwright() as p:
+        browser = await p.firefox.launch(headless=False)
+        page = await browser.new_page()
+
+        await page.goto(url, wait_until="domcontentloaded")
+
+        try:
+            await page.wait_for_url(
+                lambda u: "news.google.com" not in u,
+                timeout=3000
+            )
+        except TimeoutError:
+            pass
+
+        try:
+            await page.wait_for_selector(sel, timeout=5500)
+            await page.wait_for_timeout(500)
+
+        # html = await page.content()
+        # doc = Document(html)
+        # clean_title = doc.title()
+        # clean_content_html = doc.summary()
+        # print(clean_content_html)
+        # text = await page.evaluate("(sel) => document.querySelector(sel)?.textContent", sel)
+            text = await page.locator(sel).inner_text()
+            logger.info("[Scrape] Article content extracted")
+            print(text)
+        except TimeoutError:
+            text = None
+            logger.warning(
+                f"[Scrape] Selector not found for source: {sel}")
+
+        except Error as e:
+            text = None
+            logger.error(
+                f"[Scrape] Failed to fetch article. Error{e}", exc_info=True)
+
+        await browser.close()
 
 
 async def get_original_link(url):
@@ -94,51 +134,3 @@ async def get_original_link(url):
             "page_title": page_title}
 
 # *******************************************************************
-
-
-async def fetch_article_content(url: str):
-    # async with async_playwright() as p:
-    p = await async_playwright().start()
-    browser = await p.firefox.launch(headless=False)
-    page = await browser.new_page()
-
-    article_url = None
-    page_title = None
-
-    async def handle_request(request):
-        nonlocal article_url
-        req_url = request.url
-        if request.resource_type == "document":
-            req_url = request.url
-            if "news.google.com" not in req_url:
-                article_url = req_url
-                page.remove_listener("request", handle_request)
-
-    page.on("request", handle_request)
-
-    await page.goto(url, wait_until="load")
-    # await page.wait_for_timeout(5000)
-
-    h1 = page.locator('h1').first
-    page_title = (await h1.text_content()).strip()
-    print(page_title)
-
-    final_title = await page.title()
-    html = await page.content()
-    doc = Document(html)
-    clean_title = doc.title()
-    clean_content_html = doc.summary()
-
-    print(clean_title)
-    print(clean_content_html)
-    soup = BeautifulSoup(clean_content_html, 'html.parser')
-    print(soup)
-
-    for i in soup.find_all('div.articlebodycontent p'):
-        print(i)
-
-    input("Press Enter to close browser...")
-    await browser.close()
-
-    return {"article_url": article_url,
-            "page_title": page_title}
